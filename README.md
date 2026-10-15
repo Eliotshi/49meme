@@ -23,6 +23,18 @@ cd public && python3 -m http.server 5173
 5. **SQL Editor** : `select public.sync_library();` → renvoie le nombre d'images importées. À relancer après chaque ajout.
 6. **Project Settings → API** : copier *Project URL* et la clé *anon / publishable* dans `public/js/config.js`.
 
+## Ajouter des images au jeu (sans code, sans redéploiement)
+1. supabase.com → projet **49meme** → **Storage** → bucket **memes** → dossier **library**
+   (s'il n'existe pas encore : *Create folder* → `library`).
+2. Glisse tes fichiers dedans (plusieurs à la fois). Formats : **JPG, PNG, WEBP, GIF, MP4, WEBM, MOV**, 10 Mo max.
+   Photos d'iPhone : exporte-les en JPG (le HEIC ne s'affiche pas sur Android).
+3. C'est tout : un déclencheur en base les ajoute au jeu à l'instant. Supprimer un fichier le retire du jeu.
+
+Conseils : images ≤ 1280 px et GIF ≤ 3 Mo pour un chargement rapide sur mobile ; préférer un MP4 à un gros GIF.
+Les 74 images d'origine restent servies par le site (`public/library/`).
+Tirage : on pioche au hasard parmi les images les moins montrées (toutes parties confondues) → toute la banque tourne,
+et les nouvelles images passent vite en jeu.
+
 ## Mettre en ligne (GitHub → Vercel)
 1. Créer un repo **privé** sur github.com (ex. `49meme`), puis dans ce dossier :
    ```bash

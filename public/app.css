@@ -339,6 +339,28 @@ body.kb .rb-title { font-size: 20px; }
 .how-step p { margin: 0; font-size: 16px; }
 .how-step img { width: 100%; border-radius: 12px; border: 2px solid var(--noir); display: block; }
 
+/* ---------- bouton Quitter + confirmation ---------- */
+.quit-btn { position: absolute; z-index: 3; top: calc(var(--safe-t) + 2px); left: 50%; transform: translateX(-50%);
+  padding: 3px 12px; border-radius: 999px; background: #fff; border: 2px solid var(--ink); color: var(--ink);
+  font-family: var(--display); font-weight: 400; font-size: 13px; box-shadow: 0 2px 0 var(--ink); }
+.modal { position: fixed; inset: 0; z-index: 50; background: rgba(20, 20, 20, .55); display: grid; place-items: center; padding: 16px; }
+.modal-card { width: min(100%, 340px); background: var(--creme); border: 3px solid var(--noir); border-radius: 22px; box-shadow: 0 6px 0 var(--noir);
+  padding: 20px 18px; display: flex; flex-direction: column; gap: 10px; text-align: center; animation: up .2s ease-out both; }
+.modal-card h3 { font-family: var(--anton); font-size: 28px; color: var(--noir); }
+.modal-actions { display: flex; gap: 10px; margin-top: 6px; }
+.modal-actions button { flex: 1; justify-content: center; font-size: 18px; padding: 13px 8px; }
+
+/* ---------- Top mèmes ---------- */
+.top-list { display: flex; flex-direction: column; gap: 16px; }
+.top-card { background: #fff; border: 3px solid var(--noir); border-radius: 20px; box-shadow: 0 5px 0 var(--noir); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.top-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.top-head b { font-family: var(--anton); font-weight: 400; font-size: 24px; color: var(--rouge-m); }
+.top-head span { flex: 1; font-size: 15px; }
+.top-head em { font-style: normal; font-family: var(--anton); font-size: 12px; background: var(--jaune-m); border: 2px solid var(--noir); border-radius: 999px; padding: 2px 8px; }
+.top-foot { display: flex; justify-content: space-between; align-items: center; color: var(--ink-2); }
+.pp-nav nav { gap: 3px; }
+.pp-nav nav button { padding: 4px 7px; }
+
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; } }
 
 .stage.burst .bottom .link { color: var(--noir); font-weight: 800; }

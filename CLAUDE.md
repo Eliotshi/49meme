@@ -36,6 +36,8 @@ Formats : image, GIF, vidéo mp4/webm/mov (lue comme un GIF, muette en boucle).
 - 2026-10-15 (V4) : 2e page « BUILD A MEME. DROP A BANGER. » (maquette) avec Créer / Rejoindre sans clavier auto, page « How it works » (visuels dans public/img/how-*.jpg), en-tête « ROUND 02 / 05 » + minuteur rond, fond demi-cercle rouge + 3 traits (classe `burst`) sur lauréat et podium, défilé 10 s/mème, chrono de légende 10 s → 1 min 30.
 - Déploiement : le code de référence est le clone GitHub Desktop `~/Documents/49meme` ; l'utilisateur fait Commit + Push dans GitHub Desktop, Vercel redéploie.
 
+- 2026-10-15 (V5) : images ajoutées par glisser-déposer dans Storage `memes/library/` (trigger `memes_library_sync` → templates), tirage « sac mélangé » (moins montrées d'abord), page TOP MÈMES (table `top_memes`, mèmes unanimes ≥ 2 votes, signalement = masqué), menu PLAY / RÈGLES / TOP MÈMES, bouton Quitter + confirmation Oui/Non. Migration 0005.
+
 ## Backlog priorisé
 1. Export du top 3 en image (canvas, watermark « 49.meme » + code room) + bouton partage natif.
 2. Transfert d'hôte si l'hôte quitte ; expulsion de joueur.

@@ -176,7 +176,7 @@ function stage(top, mid, bottom = '', cls = '') {
   $app.innerHTML = `<div class="stage ${cls}">
     ${cls.includes('burst') ? BURST : '<div class="speed"></div>'}
     <div id="corners"></div>
-    <button class="quit" data-action="leave" aria-label="Quitter">✕</button>
+    <button class="quit-btn" data-action="ask-quit">Quitter</button>
     <div class="top">${top}</div>
     <div class="mid">${mid}</div>
     <div class="bottom">${bottom}</div>
@@ -240,7 +240,8 @@ async function renderHome() {
 const pageNav = (active) => `<header class="pp-nav">
   <button class="logo pp-logo" data-action="home">49<span>.MÈME</span></button>
   <nav><button class="${active === 'play' ? 'pill' : 'navlink'}" data-action="play">PLAY</button><span>/</span>
-  <button class="${active === 'how' ? 'pill' : 'navlink'}" data-action="how">HOW IT WORKS</button></nav></header>`;
+  <button class="${active === 'how' ? 'pill' : 'navlink'}" data-action="how">RÈGLES</button><span>/</span>
+  <button class="${active === 'top' ? 'pill' : 'navlink'}" data-action="top">TOP MÈMES</button></nav></header>`;
 
 // Exemples de la maquette pour la vitrine de la page Play
 const DEMO_LINES = ['QUAND TU EXPLIQUES POUR LA 10E FOIS LE MÊME TRUC', 'QUAND QUELQU\'UN DIT UNE ÉNORMITÉ EN SOIRÉE'];
@@ -284,6 +285,60 @@ async function renderPlay(sheet = null) {
   });
 }
 
+// ---------- page « Top mèmes » : les mèmes adoptés à l'unanimité ----------
+let topOffset = 0;
+function renderTop() {
+  topOffset = 0;
+  $app.innerHTML = `<div class="play-page top-page">
+    ${pageNav('top')}
+    <h1 class="pp-title small">TOP<br><span>MÈMES.</span></h1>
+    <p class="pp-sub">Adoptés à l'unanimité : 100 % des votes de leur manche.</p>
+    <div class="top-list"></div>
+    <button class="btn-white wide" data-action="top-more" hidden>VOIR PLUS <i>↓</i></button>
+  </div>`;
+  loadTop();
+}
+
+async function loadTop() {
+  const list = $app.querySelector('.top-list');
+  if (!list) return;
+  const items = await api.topMemes(20, topOffset).catch(() => []);
+  if (!topOffset && !items.length) {
+    list.innerHTML = `<div class="how-step center"><h2 class="sheet-title">Personne n'a encore fait l'unanimité.</h2>
+      <p>Gagne une manche avec toutes les voix (3 joueurs minimum) et ton mème entre ici.</p></div>`;
+  }
+  items.forEach((m, i) => {
+    const card = document.createElement('article');
+    card.className = 'top-card';
+    const rank = topOffset + i + 1;
+    card.innerHTML = `<div class="top-head"><b>#${rank}</b><span>par <strong>${esc(m.author)}</strong></span>
+      <em>${m.votes} votes · UNANIME</em></div><div class="top-meme"></div>
+      <div class="top-foot"><small>${new Date(m.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</small>
+      <button class="link" data-action="top-report" data-id="${m.id}">🚩 Signaler</button></div>`;
+    card.querySelector('.top-meme').appendChild(renderMeme(src(m.template), m.template, m.texts));
+    list.appendChild(card);
+  });
+  topOffset += items.length;
+  const more = $app.querySelector('[data-action=top-more]');
+  if (more) more.hidden = items.length < 20;
+}
+
+// ---------- quitter la partie : confirmation Oui / Non ----------
+function askQuit() {
+  const d = document.createElement('div');
+  d.className = 'modal';
+  d.innerHTML = `<div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="mq">
+    <h3 id="mq">Quitter la partie ?</h3>
+    <p class="muted">Ton coin sera libéré${S && isHost() ? ' et un autre joueur deviendra hôte' : ''}.</p>
+    <div class="modal-actions"><button class="btn-white" data-q="no">NON</button><button class="btn-yellow" data-q="yes">OUI, QUITTER</button></div></div>`;
+  d.addEventListener('click', (e) => {
+    const q = e.target.closest('[data-q]')?.dataset.q;
+    if (e.target === d || q === 'no') d.remove();
+    if (q === 'yes') { d.remove(); leave(); }
+  });
+  document.body.appendChild(d);
+}
+
 // Feuille « créer » ou « rejoindre » — sans ouvrir le clavier tout seul
 function openEntry(mode) {
   const sh = $app.querySelector('.entry-sheet');
@@ -302,7 +357,7 @@ function renderHow() {
   ];
   $app.innerHTML = `<div class="play-page how-page">
     ${pageNav('how')}
-    <h1 class="pp-title small">COMMENT<br><span>ÇA MARCHE.</span></h1>
+    <h1 class="pp-title small">LES<br><span>RÈGLES.</span></h1>
     ${steps.map(([n, t, d, img]) => `<section class="how-step">
       <div class="how-head"><b>${n}</b><h2>${t}</h2></div>
       <p>${d}</p>${img ? `<img src="${img}" alt="" loading="lazy">` : ''}</section>`).join('')}
@@ -519,6 +574,12 @@ $app.addEventListener('click', (e) => {
     case 'home': renderHome(); break;
     case 'play': renderPlay(); break;
     case 'how': renderHow(); break;
+    case 'top': renderTop(); break;
+    case 'top-more': loadTop(); break;
+    case 'top-report':
+      act(async () => { await api.reportTop(b.dataset.id); b.closest('.top-card').remove(); toast('Signalé : le mème est retiré.'); });
+      break;
+    case 'ask-quit': askQuit(); break;
     case 'ask-create': openEntry('create'); break;
     case 'ask-join': openEntry('join'); break;
     case 'ask-create-from-how': renderPlay('create'); break;
@@ -536,7 +597,7 @@ $app.addEventListener('click', (e) => {
       const res = await api.joinRoom(c, n);
       session.code = res.code; await enterRoom(res.room_id);
     });
-    case 'leave': if (confirm('Quitter la séance ?')) leave(); break;
+
     case 'next': act(() => api.hostNext(room)); break;
     case 'reroll': act(() => api.reroll(room)); break;
     case 'edit': editing = true; render(); break;

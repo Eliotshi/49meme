@@ -15,6 +15,10 @@ const T = { showcase: 10, vote: 25, results: 12 };
 const PROFILE_KEY = '49meme-profile';
 const blankProfile = { points: 0, games: 0, games_won: 0, rounds_won: 0, memes: 0, votes_received: 0 };
 function loadProfile() { try { return { ...blankProfile, ...JSON.parse(localStorage.getItem(PROFILE_KEY)) }; } catch { return { ...blankProfile }; } }
+const TOP_KEY = '49meme-top';
+function loadTop() { try { return JSON.parse(localStorage.getItem(TOP_KEY)) || []; } catch { return []; } }
+function saveTop(m) { try { localStorage.setItem(TOP_KEY, JSON.stringify([m, ...loadTop()].slice(0, 100))); } catch {} }
+
 function award(delta) {
   const p = loadProfile();
   for (const k in delta) p[k] = (p[k] || 0) + delta[k];
@@ -67,7 +71,13 @@ function advance() {
     roundMemes().forEach((m) => (m.votes = votes.filter((v) => v.meme === m.id).length));
     const w = shown().filter((m) => m.votes > 0)
       .sort((a, b) => b.votes - a.votes || (a.submitted_at ?? Infinity) - (b.submitted_at ?? Infinity))[0];
-    if (w) { w.won = true; players.find((p) => p.user_id === w.player).score++; }
+    if (w) {
+      w.won = true; players.find((p) => p.user_id === w.player).score++;
+      // Top mèmes : toutes les voix de la manche (hors auteur), 2 minimum — même règle que le SQL
+      const voters = votes.filter((v) => v.round === r.round && v.voter !== w.player).length;
+      if (w.votes >= 2 && w.votes === voters) saveTop({ id: w.id, template: tplJson(w.template), texts: w.texts,
+        author: players.find((p) => p.user_id === w.player)?.name, votes: w.votes, created_at: new Date().toISOString() });
+    }
     const mine = shown().find((m) => m.player === ME);
     if (mine) award({ points: 1 + 2 * mine.votes + (mine.won ? 5 : 0), memes: 1, votes_received: mine.votes, rounds_won: +mine.won });
     Object.assign(r, { phase: 'results', phase_ends_at: now() + T.results * 1000 });
@@ -121,6 +131,8 @@ export const api = {
   },
   mediaUrl: (t) => t.url,
   async myProfile() { return loadProfile(); },
+  async topMemes(limit = 20, offset = 0) { return loadTop().sort((a, b) => b.votes - a.votes).slice(offset, offset + limit); },
+  async reportTop(id) { try { localStorage.setItem(TOP_KEY, JSON.stringify(loadTop().filter((m) => m.id !== id))); } catch {} },
   async librarySample(n = 14) { return [...templates].sort(() => Math.random() - .5).slice(0, n).map(tplJson); },
 
   async createRoom(name) {
