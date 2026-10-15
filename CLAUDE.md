@@ -33,6 +33,9 @@ Formats : image, GIF, vidéo mp4/webm/mov (lue comme un GIF, muette en boucle).
 - 2026-10-15 : corrigés — relance après podium (REJOUER direct + « Changer les réglages »), quitter une séance (leave_room, transfert d'hôte), bouton Retour sur l'accueil, vidéos iPhone (muted/playsinline avant src), préchargement des mèmes de la manche, chrono qui disparaissait (repeint à chaque rendu + clavier mobile géré via visualViewport).
 - À venir : refonte front/design complète ; export top 3 en image partageable (boucle virale) ; modération.
 
+- 2026-10-15 (V4) : 2e page « BUILD A MEME. DROP A BANGER. » (maquette) avec Créer / Rejoindre sans clavier auto, page « How it works » (visuels dans public/img/how-*.jpg), en-tête « ROUND 02 / 05 » + minuteur rond, fond demi-cercle rouge + 3 traits (classe `burst`) sur lauréat et podium, défilé 10 s/mème, chrono de légende 10 s → 1 min 30.
+- Déploiement : le code de référence est le clone GitHub Desktop `~/Documents/49meme` ; l'utilisateur fait Commit + Push dans GitHub Desktop, Vercel redéploie.
+
 ## Backlog priorisé
 1. Export du top 3 en image (canvas, watermark « 49.meme » + code room) + bouton partage natif.
 2. Transfert d'hôte si l'hôte quitte ; expulsion de joueur.

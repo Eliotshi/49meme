@@ -77,14 +77,19 @@ export function mountEditor(root, src, tpl, initial, onChange, extraTools = '') 
   const stage = root.querySelector('.ed-stage');
   const input = root.querySelector('.ed-input');
 
+  // L'image / le GIF / la vidéo est créé UNE fois : seuls les textes sont redessinés,
+  // sinon l'animation repartait de zéro (et se rechargeait) à chaque tap.
+  const m = renderMeme(src, tpl, [], { placeholders: true });
+  stage.appendChild(m);
+
   function draw() {
-    stage.innerHTML = '';
-    const m = renderMeme(src, tpl, texts, { placeholders: true });
-    m.querySelectorAll('.cap').forEach((c) => {
-      if (+c.dataset.i === sel) c.classList.add('sel');
+    m.querySelectorAll('.cap').forEach((c) => c.remove());
+    texts.forEach((t, i) => {
+      const c = caption(t, i, true);
+      if (i === sel) c.classList.add('sel');
       bindDrag(c, m);
+      m.appendChild(c);
     });
-    stage.appendChild(m);
     input.value = texts[sel]?.t ?? '';
     input.disabled = !texts.length;
     onChange?.(texts);

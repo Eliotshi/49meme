@@ -9,7 +9,7 @@ const BOT_LINES = [
   'QUAND LE PRÉFET DIT NON', 'MOI DEVANT MA FEUILLE D\'IMPÔTS',
 ];
 const ZONES = [{ x: .5, y: .03, s: .09 }, { x: .5, y: .97, s: .09 }];
-const T = { showcase: 3, vote: 25, results: 12 };
+const T = { showcase: 10, vote: 25, results: 12 };
 
 // Profil local (le vrai est en base, table profiles). Barème identique au SQL.
 const PROFILE_KEY = '49meme-profile';

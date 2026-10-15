@@ -76,6 +76,7 @@ async function boot() {
 
 async function enterRoom(room) {
   session.room = room; save();
+  if (params.has('r')) { params.delete('r'); history.replaceState(null, '', location.pathname + (params.size ? '?' + params : '')); }
   unsub?.();
   let t;
   unsub = api.subscribe(room, () => { clearTimeout(t); t = setTimeout(refresh, 60); });
@@ -110,11 +111,12 @@ function paintTimer() {
   const r = S.room, left = Date.parse(r.phase_ends_at) - serverNow();
   const total = (r[`${r.phase === 'caption' ? 'caption' : r.phase}_seconds`] || 10) * 1000;
   const secs = Math.max(0, Math.ceil(left / 1000));
-  document.querySelectorAll('[data-live=timer]').forEach((el) => {
-    if (el.textContent !== String(secs)) el.textContent = secs;
-    el.closest('.chrono')?.classList.toggle('urgent', r.phase === 'caption' && secs <= 10);
+  const txt = `${two(Math.floor(secs / 60))}:${two(secs % 60)}`;
+  document.querySelectorAll('[data-live=timer]').forEach((el) => { if (el.textContent !== txt) el.textContent = txt; });
+  document.querySelectorAll('[data-live=ring]').forEach((el) => {
+    el.style.setProperty('--p', Math.max(0, Math.min(1, left / total)));
+    el.classList.toggle('urgent', r.phase === 'caption' && secs <= 10);
   });
-  document.querySelectorAll('[data-live=bar]').forEach((el) => (el.style.transform = `scaleX(${Math.max(0, Math.min(1, left / total))})`));
 
   const key = `${r.phase}${r.round}.${r.vote_index}`;
   if (r.phase === 'caption' && left < 1500 && autosaved !== key && editor && !S.my_meme?.submitted) {
@@ -172,7 +174,7 @@ function renderCorners() {
 function stage(top, mid, bottom = '', cls = '') {
   cornersHtml = '';
   $app.innerHTML = `<div class="stage ${cls}">
-    <div class="speed"></div>
+    ${cls.includes('burst') ? BURST : '<div class="speed"></div>'}
     <div id="corners"></div>
     <button class="quit" data-action="leave" aria-label="Quitter">✕</button>
     <div class="top">${top}</div>
@@ -181,8 +183,15 @@ function stage(top, mid, bottom = '', cls = '') {
   </div>`;
 }
 
-const chrono = (label) => `<div class="chrono"><small>${label}</small><b data-live="timer"></b><div class="bar"><i data-live="bar"></i></div></div>`;
-const miniChrono = (label) => `<div class="chrono mini"><small>${label}</small><b data-live="timer"></b></div>`;
+// En-tête façon maquette : « ROUND 02 / 05 » + minuteur rond qui se vide
+const two = (n) => String(n).padStart(2, '0');
+const roundTitle = () => `ROUND <b>${two(S.room.round)}</b> / ${two(S.room.max_rounds)}`;
+const chrono = (title, sub = '') => `<div class="roundbar">
+  <div class="rb-title">${title}${sub ? `<small>${sub}</small>` : ''}</div>
+  <div class="ring" data-live="ring"><span data-live="timer"></span></div></div>`;
+// Fond « fin de partie » : demi-cercle rouge + trois petits traits
+const BURST = `<div class="burst-bg" aria-hidden="true"><i class="half"></i><i class="sliver"></i>
+  <svg class="strokes" viewBox="0 0 60 60"><path d="M10 30 L22 22 M14 44 L30 40 M30 12 L36 26" /></svg></div>`;
 
 function renderDesktopGate() {
   $app.innerHTML = `<div class="center-msg">
@@ -195,34 +204,19 @@ function renderDesktopGate() {
 
 // ---------- accueil : polaroïds éparpillés ----------
 async function renderHome() {
-  const code = (params.get('r') || '').toUpperCase();
+  if (params.get('r')) return renderPlay('join');   // lien d'invitation → directement « rejoindre »
   $app.innerHTML = `<div class="home">
     <div class="pile" aria-hidden="true"></div>
     <div class="home-ui">
       <div class="logo big">49<span>.MÈME</span></div>
       <p class="tag">Le jeu de mèmes de la présidentielle</p>
-      <button class="primary cta" data-action="open-sheet">JOUER</button>
+      <button class="primary cta" data-action="play">JOUER</button>
       <p class="hint">4 joueurs · 1 code · 0 débat</p>
       <button class="profile-chip" data-action="profile" hidden></button>
-    </div>
-    <div class="sheet" hidden>
-      <div class="sheet-card">
-        <button class="back" data-action="close-sheet">← Retour</button>
-        <label class="field"><span>Ton blaze</span>
-          <input id="name" maxlength="20" placeholder="Ex : Jean-Michel Hémicycle" value="${esc(session.name || '')}" autocomplete="nickname"></label>
-        <button class="primary" data-action="create">CRÉER UNE SÉANCE</button>
-        <div class="or">ou rejoins tes potes</div>
-        <div class="join">
-          <input id="code" maxlength="4" placeholder="CODE" value="${esc(code)}" autocapitalize="characters" autocomplete="off">
-          <button class="secondary" data-action="join">REJOINDRE</button>
-        </div>
-        ${api.mode === 'mock' ? '<p class="badge">MODE LOCAL · 3 bots · rien n\'est envoyé</p>' : ''}
-      </div>
     </div>
     <div class="sheet profile-sheet" hidden><div class="sheet-card"></div></div>
   </div>`;
   api.myProfile().then(renderProfile).catch(() => {});
-  if (code) $app.querySelector('.sheet').hidden = false;
 
   const items = await api.librarySample(14).catch(() => []);
   const pile = $app.querySelector('.pile');
@@ -240,6 +234,80 @@ async function renderHome() {
     card.appendChild(renderMeme(src(t), t, []));
     pile.appendChild(card);
   });
+}
+
+// Barre du haut des pages « Play » et « How it works » (maquette)
+const pageNav = (active) => `<header class="pp-nav">
+  <button class="logo pp-logo" data-action="home">49<span>.MÈME</span></button>
+  <nav><button class="${active === 'play' ? 'pill' : 'navlink'}" data-action="play">PLAY</button><span>/</span>
+  <button class="${active === 'how' ? 'pill' : 'navlink'}" data-action="how">HOW IT WORKS</button></nav></header>`;
+
+// Exemples de la maquette pour la vitrine de la page Play
+const DEMO_LINES = ['QUAND TU EXPLIQUES POUR LA 10E FOIS LE MÊME TRUC', 'QUAND QUELQU\'UN DIT UNE ÉNORMITÉ EN SOIRÉE'];
+
+// ---------- 2e page : « BUILD A MEME. DROP A BANGER. » ----------
+async function renderPlay(sheet = null) {
+  const code = (params.get('r') || '').toUpperCase();
+  $app.innerHTML = `<div class="play-page">
+    ${pageNav('play')}
+    <h1 class="pp-title">BUILD A MEME.<br><span>DROP A BANGER.</span></h1>
+    <p class="pp-sub">Tes potes. Tes légendes. Zéro dignité.</p>
+    <div class="pp-cta">
+      <button class="btn-yellow" data-action="ask-create">CRÉER UNE PARTIE <i>→</i></button>
+      <button class="btn-white" data-action="ask-join">REJOINDRE UN LOBBY <i>→</i></button>
+    </div>
+    <p class="pp-multi"><b>👥</b> 4 JOUEURS · 1 CODE · 0 DÉBAT</p>
+    <div class="pp-show">${BURST}<div class="pp-cards"></div></div>
+    <div class="sheet entry-sheet" hidden>
+      <div class="sheet-card">
+        <button class="back" data-action="close-sheet">← Retour</button>
+        <h3 class="sheet-title"></h3>
+        <label class="field"><span>Ton blaze</span>
+          <input id="name" maxlength="20" placeholder="Ex : Jean-Michel Hémicycle" value="${esc(session.name || '')}" autocomplete="nickname"></label>
+        <label class="field join-only"><span>Code du lobby</span>
+          <input id="code" maxlength="4" placeholder="ABCD" value="${esc(code)}" autocapitalize="characters" autocomplete="off"></label>
+        <button class="btn-yellow wide create-only" data-action="create">C'EST PARTI <i>→</i></button>
+        <button class="btn-yellow wide join-only" data-action="join">REJOINDRE <i>→</i></button>
+        ${api.mode === 'mock' ? '<p class="badge">MODE LOCAL · 3 bots · rien n\'est envoyé</p>' : ''}
+      </div>
+    </div>
+  </div>`;
+  if (sheet) openEntry(sheet);
+  const items = await api.librarySample(2).catch(() => []);
+  const box = $app.querySelector('.pp-cards');
+  if (!box) return;
+  items.forEach((t, i) => {
+    const card = document.createElement('div');
+    card.className = `pp-card c${i}`;
+    card.appendChild(renderMeme(src(t), t, [{ t: DEMO_LINES[i], x: .5, y: i ? .97 : .03, s: .085 }]));
+    box.appendChild(card);
+  });
+}
+
+// Feuille « créer » ou « rejoindre » — sans ouvrir le clavier tout seul
+function openEntry(mode) {
+  const sh = $app.querySelector('.entry-sheet');
+  sh.dataset.mode = mode;
+  sh.querySelector('.sheet-title').textContent = mode === 'join' ? 'Rejoins un lobby' : 'Crée ta partie';
+  sh.hidden = false;
+}
+
+// ---------- page « How it works » ----------
+function renderHow() {
+  const steps = [
+    ['01', 'Crée une partie', 'Tu reçois un code de 4 lettres. Envoie-le à 3 potes : un rond par coin de l\'écran.', null],
+    ['02', 'Une image. Ta meilleure légende.', 'Chacun reçoit une image ou un GIF de la campagne. Écris la légende la plus drôle avant la fin du chrono. Pas inspiré ? Change d\'image, 5 fois max.', 'img/how-round.jpg'],
+    ['03', 'Le niveau du lobby', 'Tous les mèmes défilent en même temps sur chaque écran, 10 secondes chacun. Puis tout le monde vote pour son préféré. Pas pour le sien.', 'img/how-lobby.jpg'],
+    ['04', 'Adopté sans vote', 'Le lauréat gagne la manche et des points de profil. Partage-le sur Insta, WhatsApp ou X et fais monter ton grade, de militant·e à président·e.', 'img/how-adopte.jpg'],
+  ];
+  $app.innerHTML = `<div class="play-page how-page">
+    ${pageNav('how')}
+    <h1 class="pp-title small">COMMENT<br><span>ÇA MARCHE.</span></h1>
+    ${steps.map(([n, t, d, img]) => `<section class="how-step">
+      <div class="how-head"><b>${n}</b><h2>${t}</h2></div>
+      <p>${d}</p>${img ? `<img src="${img}" alt="" loading="lazy">` : ''}</section>`).join('')}
+    <button class="btn-yellow wide" data-action="ask-create-from-how">CRÉER UNE PARTIE <i>→</i></button>
+  </div>`;
 }
 
 function renderProfile(p) {
@@ -274,7 +342,7 @@ function renderLobby() {
       <p class="muted">Envoie le code à tes potes. 4 joueurs max, un par coin de l'écran.</p>
       ${isHost() ? `<div class="settings">
         <label>Manches <select data-set="rounds">${[1, 3, 5, 7, 10].map((n) => `<option ${n === S.room.max_rounds ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-        <label>Chrono <select data-set="secs">${[10, 20, 30, 40].map((n) => `<option value="${n}" ${n === S.room.caption_seconds ? 'selected' : ''}>${n} s</option>`).join('')}</select></label>
+        <label>Chrono <select data-set="secs">${[10, 20, 30, 40, 60, 90].map((n) => `<option value="${n}" ${n === S.room.caption_seconds ? 'selected' : ''}>${n < 60 ? n + ' s' : n === 60 ? '1 min' : '1 min 30'}</option>`).join('')}</select></label>
       </div>` : ''}
       ${uploadBlock()}
     </div>`,
@@ -294,7 +362,7 @@ function uploadBlock() {
 // ---------- légende ----------
 function renderCaption() {
   const m = S.my_meme, r = S.room;
-  const top = chrono(`MANCHE ${r.round}/${r.max_rounds}`);
+  const top = chrono(roundTitle());
   if (!m) return stage(top, `<div class="panel"><h3>Tu arrives en pleine séance</h3><p class="muted">Tu joueras à la prochaine manche.</p></div>`);
   if (m.submitted && !editing) {
     editor = null;
@@ -313,7 +381,7 @@ function renderCaption() {
 // ---------- défilé synchronisé ----------
 function renderShowcase() {
   const r = S.room, list = S.memes, cur = list[r.vote_index];
-  stage(miniChrono(`MÈME ${r.vote_index + 1}/${list.length}`),
+  stage(chrono(`MÈME <b>${two(r.vote_index + 1)}</b> / ${two(list.length)}`, roundTitle().replace(/<\/?b>/g, '')),
     `<div class="card show-in"><div class="meme-wrap"></div></div>
      <div class="progress">${list.map((_, i) => `<i class="${i <= r.vote_index ? 'on' : ''}"></i>`).join('')}</div>`,
     `<p class="wait">${cur.mine ? 'C\'est le tien. Fais pas cette tête.' : 'Prépare ton vote…'}</p>`, 'showcase');
@@ -322,7 +390,7 @@ function renderShowcase() {
 
 // ---------- vote : tous les mèmes empilés ----------
 function renderVote() {
-  stage(chrono('VOTE POUR TON PRÉFÉRÉ'),
+  stage(chrono(roundTitle(), 'VOTE POUR TON PRÉFÉRÉ'),
     `<div class="vote-list">${S.memes.map((m, i) => `
       <div class="card vote-card ${S.my_vote === m.id ? 'chosen' : ''}">
         <div class="meme-wrap ${S.my_vote === m.id ? 'stamped' : ''}" data-stamp="ADOPTÉ" data-i="${i}"></div>
@@ -342,7 +410,7 @@ function renderResults() {
   const last = r.round >= r.max_rounds;
   const line = WIN_LINES[hash(`${r.code}${r.round}`) % WIN_LINES.length];
   const others = (S.memes || []).filter((m) => !m.won);
-  stage(miniChrono(last ? 'PODIUM DANS' : 'MANCHE SUIVANTE DANS'),
+  stage(chrono(roundTitle(), last ? 'PODIUM DANS' : 'MANCHE SUIVANTE DANS'),
     w ? `<div class="laureat">
         <h1 class="bravo">FÉLICITATIONS</h1>
         <p class="who">${esc(w.author)}${w.mine ? ' (toi !)' : ''}</p>
@@ -354,7 +422,7 @@ function renderResults() {
       ${myGain()}
       ${others.length ? `<div class="others">${others.map((m, i) => `<div class="mini"><div class="meme-wrap" data-o="${i}"></div><span>${esc(m.author)} · ${m.votes}</span></div>`).join('')}</div>` : ''}`
       : `<div class="laureat"><h1 class="bravo">MOTION REJETÉE</h1><p class="line">Personne n'a voté. L'abstention gagne encore.</p></div>`,
-    `<button class="link" data-action="report-open" ${w ? '' : 'hidden'}>🚩 Signaler</button>`, 'results');
+    `<button class="link" data-action="report-open" ${w ? '' : 'hidden'}>🚩 Signaler</button>`, 'results burst');
   if (w) { $app.querySelector('[data-w]').appendChild(renderMeme(src(w.template), w.template, w.texts)); prepareShare(w); }
   $app.querySelectorAll('[data-o]').forEach((el) => { const m = others[+el.dataset.o]; el.appendChild(renderMeme(src(m.template), m.template, m.texts)); });
   $app.querySelector('[data-action=report-open]')?.setAttribute('data-id', w?.id || '');
@@ -364,7 +432,7 @@ function renderResults() {
 function renderPodium() {
   const ranked = [...S.players].sort((a, b) => b.score - a.score);
   const medals = ['🥇', '🥈', '🥉', '4'];
-  stage(`<div class="chrono mini"><small>FIN DE LA LÉGISLATURE</small><b>🏛️</b></div>`,
+  stage(`<div class="roundbar"><div class="rb-title">FIN DE LA <b>LÉGISLATURE</b></div></div>`,
     `<div class="panel">
       <ol class="ranking">${ranked.map((p, i) => `<li><span>${medals[i]}</span><b>${esc(p.name)}</b><em>${p.score} pt${p.score > 1 ? 's' : ''}</em></li>`).join('')}</ol>
     </div>
@@ -373,7 +441,7 @@ function renderPodium() {
     <div class="panel">${uploadBlock()}</div>`,
     isHost()
       ? `<button class="primary" data-action="next">REJOUER</button><button class="link" data-action="lobby">Changer les réglages</button>`
-      : `<p class="wait">En attente de l'hôte…</p><button class="link" data-action="leave-now">← Quitter</button>`);
+      : `<p class="wait">En attente de l'hôte…</p><button class="link" data-action="leave-now">← Quitter</button>`, 'burst');
   $app.querySelectorAll('[data-p]').forEach((el) => { const m = S.memes[+el.dataset.p]; el.appendChild(renderMeme(src(m.template), m.template, m.texts)); });
   const best = [...(S.memes || [])].sort((a, b) => b.votes - a.votes)[0];
   if (best) prepareShare(best);
@@ -430,6 +498,11 @@ window.visualViewport?.addEventListener('scroll', fitViewport);
 addEventListener('resize', fitViewport);
 fitViewport();
 
+// iPhone en mode économie d'énergie : la lecture auto des vidéos est bloquée → on la relance au premier toucher
+document.addEventListener('pointerdown', () => {
+  document.querySelectorAll('.meme video').forEach((v) => { if (v.paused) v.play().catch(() => {}); });
+}, { passive: true });
+
 // ---------- actions (délégation d'événements) ----------
 $app.addEventListener('click', (e) => {
   const b = e.target.closest('[data-action],[data-vote]');
@@ -443,7 +516,12 @@ $app.addEventListener('click', (e) => {
     case 'close-sheet': b.closest('.sheet').hidden = true; break;
     case 'leave-now': leave(); break;
     case 'lobby': act(() => api.backToLobby(room)); break;
-    case 'open-sheet': $app.querySelector('.sheet').hidden = false; $app.querySelector('#name').focus(); break;
+    case 'home': renderHome(); break;
+    case 'play': renderPlay(); break;
+    case 'how': renderHow(); break;
+    case 'ask-create': openEntry('create'); break;
+    case 'ask-join': openEntry('join'); break;
+    case 'ask-create-from-how': renderPlay('create'); break;
     case 'profile': $app.querySelector('.profile-sheet').hidden = false; break;
     case 'share-net': shareTo(b.dataset.net, shareFile, toast); break;
     case 'create': return act(async () => {
