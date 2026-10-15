@@ -40,6 +40,12 @@ function pickTemplate() {
   return t;
 }
 
+function resetGame() {
+  memes = []; votes = [];
+  players.forEach((p) => (p.score = 0));
+  Object.assign(room, { phase: 'lobby', round: 0, vote_index: 0, phase_ends_at: null });
+}
+
 function startRound() {
   Object.assign(room, { phase: 'caption', round: room.round + 1, vote_index: 0, phase_ends_at: now() + room.caption_seconds * 1000 });
   players.forEach((p) => memes.push({ id: Math.random().toString(36).slice(2) + Date.now().toString(36), round: room.round, player: p.user_id, template: pickTemplate(),
@@ -158,9 +164,11 @@ export const api = {
 
   async hostNext() {
     if (room.phase === 'lobby') startRound();
-    else if (room.phase === 'podium') { Object.assign(room, { phase: 'lobby', round: 0, phase_ends_at: null }); players.forEach((p) => (p.score = 0)); }
+    else if (room.phase === 'podium') { resetGame(); startRound(); }
     bump();
   },
+  async backToLobby() { resetGame(); bump(); },
+  async leaveRoom() { listeners.clear(); },
   async updateSettings(_, rounds, secs) { room.max_rounds = rounds; room.caption_seconds = secs; bump(); },
   async reroll() {
     const m = roundMemes().find((x) => x.player === ME);

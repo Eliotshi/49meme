@@ -6,19 +6,33 @@ const MAX_VH = 52; // hauteur max de l'image à l'écran
 export function renderMeme(src, tpl, texts, { placeholders = false } = {}) {
   const el = document.createElement('div');
   el.className = 'meme';
-  const fit = (w, h) => { if (w && h) el.style.width = `min(100%, ${(w / h) * MAX_VH}vh)`; };
+  // réserve la place dès le départ (ratio connu) : pas de saut d'affichage pendant le chargement
+  const fit = (w, h) => {
+    if (!w || !h) return;
+    el.style.width = `min(100%, ${(w / h) * MAX_VH}vh)`;
+    el.style.aspectRatio = `${w} / ${h}`;
+  };
   fit(tpl.w, tpl.h);
   let media;
   if (tpl.kind === 'video') {
     // GIF au format vidéo : muet, en boucle, lu automatiquement (playsinline obligatoire sur iPhone)
+    // iPhone : muted + playsinline doivent être posés AVANT la source, sinon la lecture auto est refusée
     media = document.createElement('video');
-    Object.assign(media, { src, muted: true, loop: true, autoplay: true, playsInline: true, preload: 'auto' });
-    media.setAttribute('muted', ''); media.setAttribute('playsinline', '');
+    media.muted = true; media.defaultMuted = true; media.loop = true; media.autoplay = true; media.playsInline = true;
+    media.setAttribute('muted', ''); media.setAttribute('playsinline', ''); media.setAttribute('webkit-playsinline', '');
+    media.preload = 'auto';
     media.onloadedmetadata = () => { if (!tpl.w) fit(media.videoWidth, media.videoHeight); };
+    media.oncanplay = () => { el.classList.add('loaded'); media.play().catch(() => {}); };
+    media.src = src;
   } else {
     media = document.createElement('img');
-    media.src = src; media.alt = ''; media.draggable = false; media.decoding = 'async';
-    media.onload = () => { if (!tpl.w) fit(media.naturalWidth, media.naturalHeight); };
+    media.alt = ''; media.draggable = false; media.decoding = 'async';
+    // animation de chargement tant que l'image n'est pas arrivée (au lieu d'un cadre vide)
+    const ready = () => el.classList.add('loaded');
+    media.onload = () => { if (!tpl.w) fit(media.naturalWidth, media.naturalHeight); ready(); };
+    media.onerror = ready;
+    media.src = src;
+    if (media.complete && media.naturalWidth) ready();
   }
   el.appendChild(media);
   texts.forEach((t, i) => el.appendChild(caption(t, i, placeholders)));
@@ -37,6 +51,7 @@ function caption(t, i, placeholders) {
   c.className = 'cap';
   c.dataset.i = i;
   place(c, t);
+  c.style.fontSize = t.s * 88 + 'vw';      // repli pour les vieux iPhone (unités cqw non gérées)
   c.style.fontSize = t.s * 100 + 'cqw';
   c.textContent = t.t || (placeholders ? `TEXTE ${i + 1}` : '');
   if (!t.t) c.classList.add('empty');

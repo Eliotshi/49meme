@@ -29,7 +29,8 @@ Formats : image, GIF, vidéo mp4/webm/mov (lue comme un GIF, muette en boucle).
 
 ## Statut
 - V1 backend — 2026-10-14. V2 game design + UI (accueil polaroïds, coins joueurs, défilé, vote unique, lauréat) — 2026-10-14, testée en mode local.
-- Supabase/Vercel pas encore branchés : on itère en local (`?demo`), mise en ligne quand la version plaît.
+- 2026-10-15 : en ligne sur https://49meme.vercel.app (Supabase `jzwyzivyknhtkhcjpzvx`, migrations 0001→0003 appliquées).
+- 2026-10-15 : corrigés — relance après podium (REJOUER direct + « Changer les réglages »), quitter une séance (leave_room, transfert d'hôte), bouton Retour sur l'accueil, vidéos iPhone (muted/playsinline avant src), préchargement des mèmes de la manche, chrono qui disparaissait (repeint à chaque rendu + clavier mobile géré via visualViewport).
 - À venir : refonte front/design complète ; export top 3 en image partageable (boucle virale) ; modération.
 
 ## Backlog priorisé

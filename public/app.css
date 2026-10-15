@@ -29,10 +29,11 @@
              2px 2px 0 var(--ink), -2px 2px 0 var(--ink), 2px -2px 0 var(--ink), -2px -2px 0 var(--ink), 0 7px 0 var(--ink);
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: var(--body); font-weight: 600; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink); font-family: var(--body); font-weight: 600; }
 body { overscroll-behavior: none; }
 button, input, select, textarea { font: inherit; color: inherit; }
-#app { max-width: 520px; margin: 0 auto; height: 100%; position: relative; }
+/* hauteur = zone réellement visible (barre Safari, clavier) : réglée en JS via visualViewport */
+#app { max-width: 520px; margin: 0 auto; height: 100%; height: var(--app-h, 100dvh); position: relative; }
 [hidden] { display: none !important; }
 .muted { color: var(--ink-2); margin: 0; }
 .small { font-size: 13px; }
@@ -52,6 +53,12 @@ button:disabled { opacity: .55; }
 .ghost { background: var(--gris); color: #fff; font-family: var(--display); font-weight: 400; font-size: 18px; box-shadow: 0 5px 0 var(--gris-d); }
 .ghost:disabled { background: var(--line); color: var(--ink-2); box-shadow: 0 5px 0 #c3cfdc; opacity: 1; }
 .link { background: none; color: var(--ink-2); font-weight: 700; font-size: 14px; padding: 6px; }
+.back { align-self: flex-start; background: none; color: var(--ink-2); font-weight: 800; font-size: 16px; padding: 2px 0; }
+.bottom > .link { padding: 2px; }
+/* clavier ouvert : chrono compact pour garder l'image et VALIDER visibles */
+body.kb .top { padding-top: calc(var(--safe-t) + 18px); }
+body.kb .chrono b { font-size: 44px; }
+body.kb .chrono .bar { margin-top: 4px; }
 .wait { text-align: center; color: var(--ink-2); font-weight: 800; margin: 0; font-size: 16px; }
 
 /* ---------- logo : 49.MÈME + bande bleu/rouge + étiquette inclinée ---------- */
@@ -175,8 +182,13 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--b
 .upload { display: block; text-align: center; padding: 13px; border-radius: 18px; border: 3px dashed var(--bleu); color: var(--bleu); font-weight: 800; cursor: pointer; background: var(--bg-2); }
 
 /* ---------- mème (légendes style mème classique : Anton blanc contour noir) ---------- */
-.meme { position: relative; container-type: inline-size; margin: 0 auto; width: 100%; border-radius: 16px; overflow: hidden; background: #000; user-select: none; }
-.meme img, .meme video { display: block; width: 100%; height: auto; pointer-events: none; }
+.meme { position: relative; container-type: inline-size; margin: 0 auto; width: 100%; max-width: 100%; border-radius: 16px; overflow: hidden; user-select: none;
+  min-height: 80px; background: linear-gradient(100deg, #d9e3ee 30%, #eef3f8 50%, #d9e3ee 70%) 0 0 / 300% 100%; animation: loading 1.2s linear infinite; }
+.meme.loaded { animation: none; background: transparent; }
+.meme img, .meme video { opacity: 0; transition: opacity .2s; }
+.meme.loaded img, .meme.loaded video { opacity: 1; }
+@keyframes loading { to { background-position: -150% 0; } }
+.meme img, .meme video { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 .cap { position: absolute; transform: translate(-50%, var(--ty, -50%)); width: max-content; max-width: 94%; text-align: center;
   font-family: var(--caption); text-transform: uppercase; line-height: 1.05; color: #fff; white-space: pre-wrap; overflow-wrap: anywhere;
   text-shadow: 0 0 .08em #000, .05em .05em 0 #000, -.05em .05em 0 #000, .05em -.05em 0 #000, -.05em -.05em 0 #000; touch-action: none; }

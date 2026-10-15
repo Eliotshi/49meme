@@ -33,6 +33,8 @@ export const api = {
   hostNext: (room) => rpc('host_next', { p_room: room }),
   updateSettings: (room, rounds, secs) => rpc('update_settings', { p_room: room, p_max_rounds: rounds, p_caption_seconds: secs }),
   reroll: (room) => rpc('reroll', { p_room: room }),
+  leaveRoom: (room) => rpc('leave_room', { p_room: room }),
+  backToLobby: (room) => rpc('back_to_lobby', { p_room: room }),
   submit: (room, texts, final = true) => rpc('submit_meme', { p_room: room, p_texts: texts, p_final: final }),
   vote: (room, meme) => rpc('cast_vote', { p_room: room, p_meme: meme }),
   tick: (room, phase, idx) => rpc('tick', { p_room: room, p_phase: phase, p_vote_index: idx }),

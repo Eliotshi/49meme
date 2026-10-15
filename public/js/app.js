@@ -95,6 +95,7 @@ async function refresh(throwOnError = false) {
 }
 
 function leave() {
+  if (session.room) api.leaveRoom(session.room).catch(() => {});
   unsub?.(); unsub = null; S = null; session.room = null; save(); viewKey = ''; cornersHtml = '';
   renderHome();
 }
@@ -103,7 +104,8 @@ function leave() {
 setInterval(() => { if (session.room && S) refresh(); }, 4000);
 
 // chrono + avancement automatique (n'importe quel joueur fait avancer la partie)
-setInterval(() => {
+setInterval(paintTimer, 200);
+function paintTimer() {
   if (!S || !S.room.phase_ends_at) return;
   const r = S.room, left = Date.parse(r.phase_ends_at) - serverNow();
   const total = (r[`${r.phase === 'caption' ? 'caption' : r.phase}_seconds`] || 10) * 1000;
@@ -124,7 +126,7 @@ setInterval(() => {
     lastTick = Date.now();
     api.tick(session.room, r.phase, r.vote_index).then(() => refresh()).catch(() => {});
   }
-}, 200);
+}
 
 // ---------- rendu ----------
 function render() {
@@ -138,6 +140,8 @@ function render() {
        results: renderResults, podium: renderPodium })[r.phase]();
   }
   renderCorners();
+  paintTimer();
+  preloadRound();
   const done = S.players.filter((p) => p.submitted).length;
   document.querySelectorAll('[data-live=progress]').forEach((el) => (el.textContent = `${done}/${S.players.length} ont validé`));
 }
@@ -203,6 +207,7 @@ async function renderHome() {
     </div>
     <div class="sheet" hidden>
       <div class="sheet-card">
+        <button class="back" data-action="close-sheet">← Retour</button>
         <label class="field"><span>Ton blaze</span>
           <input id="name" maxlength="20" placeholder="Ex : Jean-Michel Hémicycle" value="${esc(session.name || '')}" autocomplete="nickname"></label>
         <button class="primary" data-action="create">CRÉER UNE SÉANCE</button>
@@ -273,9 +278,10 @@ function renderLobby() {
       </div>` : ''}
       ${uploadBlock()}
     </div>`,
-    isHost()
+    (isHost()
       ? `<button class="primary" data-action="next">LANCER LA SÉANCE</button>`
-      : `<p class="wait">L'hôte prépare le 49.3…</p>`,
+      : `<p class="wait">L'hôte prépare le 49.3…</p>`)
+      + `<button class="link" data-action="leave-now">← Quitter la séance</button>`,
   );
 }
 
@@ -307,8 +313,6 @@ function renderCaption() {
 // ---------- défilé synchronisé ----------
 function renderShowcase() {
   const r = S.room, list = S.memes, cur = list[r.vote_index];
-  const nxt = list[r.vote_index + 1];
-  if (nxt && nxt.template.kind !== 'video') new Image().src = src(nxt.template);   // enchaînement fluide
   stage(miniChrono(`MÈME ${r.vote_index + 1}/${list.length}`),
     `<div class="card show-in"><div class="meme-wrap"></div></div>
      <div class="progress">${list.map((_, i) => `<i class="${i <= r.vote_index ? 'on' : ''}"></i>`).join('')}</div>`,
@@ -367,7 +371,9 @@ function renderPodium() {
     ${S.memes?.length ? `${shareRow('Partager le meilleur mème')}<h3 class="center">Les lois adoptées</h3><div class="vote-list">${S.memes.map((m, i) => `
       <div class="card"><div class="meme-wrap" data-p="${i}"></div><p class="muted small center">Manche ${m.round} · ${esc(m.author)}</p></div>`).join('')}</div>` : ''}
     <div class="panel">${uploadBlock()}</div>`,
-    isHost() ? `<button class="primary" data-action="next">NOUVELLE SÉANCE</button>` : `<p class="wait">En attente de l'hôte…</p>`);
+    isHost()
+      ? `<button class="primary" data-action="next">REJOUER</button><button class="link" data-action="lobby">Changer les réglages</button>`
+      : `<p class="wait">En attente de l'hôte…</p><button class="link" data-action="leave-now">← Quitter</button>`);
   $app.querySelectorAll('[data-p]').forEach((el) => { const m = S.memes[+el.dataset.p]; el.appendChild(renderMeme(src(m.template), m.template, m.texts)); });
   const best = [...(S.memes || [])].sort((a, b) => b.votes - a.votes)[0];
   if (best) prepareShare(best);
@@ -394,6 +400,36 @@ function myGain() {
   return `<p class="gain">+${pts} pts sur ton profil</p>`;
 }
 
+// Précharge tous les mèmes de la manche dès le défilé : sur mobile, 3 s ne suffisent pas à charger un GIF.
+const preloaded = new Map();
+function preloadRound() {
+  if (!['showcase', 'vote', 'results'].includes(S.room.phase)) return;
+  for (const m of S.memes || []) {
+    const url = src(m.template);
+    if (preloaded.has(url)) continue;
+    let el;
+    if (m.template.kind === 'video') {
+      el = document.createElement('video');
+      el.muted = true; el.playsInline = true; el.preload = 'auto'; el.src = url; el.load();
+    } else { el = new Image(); el.src = url; }
+    preloaded.set(url, el);   // garder une référence évite que le navigateur abandonne le chargement
+  }
+  if (preloaded.size > 40) preloaded.delete(preloaded.keys().next().value);
+}
+
+// Clavier mobile : on cale l'appli sur la zone visible pour que le chrono et VALIDER restent à l'écran.
+function fitViewport() {
+  const vv = window.visualViewport;
+  const h = vv ? vv.height : innerHeight;
+  document.documentElement.style.setProperty('--app-h', h + 'px');
+  document.body.classList.toggle('kb', vv ? vv.height < innerHeight * 0.75 : false);
+  if (vv && vv.offsetTop) window.scrollTo(0, 0);
+}
+window.visualViewport?.addEventListener('resize', fitViewport);
+window.visualViewport?.addEventListener('scroll', fitViewport);
+addEventListener('resize', fitViewport);
+fitViewport();
+
 // ---------- actions (délégation d'événements) ----------
 $app.addEventListener('click', (e) => {
   const b = e.target.closest('[data-action],[data-vote]');
@@ -404,6 +440,9 @@ $app.addEventListener('click', (e) => {
     return act(() => api.vote(room, b.dataset.vote));
   }
   switch (b.dataset.action) {
+    case 'close-sheet': b.closest('.sheet').hidden = true; break;
+    case 'leave-now': leave(); break;
+    case 'lobby': act(() => api.backToLobby(room)); break;
     case 'open-sheet': $app.querySelector('.sheet').hidden = false; $app.querySelector('#name').focus(); break;
     case 'profile': $app.querySelector('.profile-sheet').hidden = false; break;
     case 'share-net': shareTo(b.dataset.net, shareFile, toast); break;
