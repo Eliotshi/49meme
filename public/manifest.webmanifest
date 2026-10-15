@@ -1,0 +1,12 @@
+{
+  "name": "49.meme",
+  "short_name": "49.meme",
+  "description": "Le jeu de mèmes de la présidentielle 2027. Adopté sans vote.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#e4eef8",
+  "theme_color": "#e4eef8",
+  "lang": "fr",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

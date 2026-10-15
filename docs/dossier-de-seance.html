@@ -1,0 +1,309 @@
+<title>49.meme Dossier de séance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Layout : une colonne de lecture type « dossier parlementaire », sections tamponnées, rails d'articles numérotés seulement là où l'ordre compte. */
+:root {
+  color-scheme: dark;
+  --nuit: #0b1640;
+  --nuit-2: #14225c;
+  --nuit-3: #1d2e74;
+  --rouge: #e3172d;
+  --jaune: #f5c400;
+  --papier: #eef0fa;
+  --gris: #a3abd0;
+  --vert: #3ecf8e;
+  --display: 'Anton', Impact, 'Arial Narrow', sans-serif;
+  --body: 'Archivo', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+body { background: var(--nuit); color: var(--papier); font-family: var(--body); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 860px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 80px; display: flex; flex-direction: column; gap: 56px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 400; letter-spacing: .5px; text-wrap: balance; margin: 0; }
+h2 { font-size: 34px; line-height: 1.1; }
+h3 { font-size: 21px; color: var(--jaune); }
+p { margin: 0; max-width: 68ch; }
+a { color: var(--jaune); }
+code, .mono { font-family: var(--mono); font-size: 13.5px; }
+code { background: var(--nuit-2); padding: 1px 6px; border-radius: 4px; }
+.muted { color: var(--gris); }
+section { display: flex; flex-direction: column; gap: 18px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gris); }
+
+/* en-tête */
+header.cover { display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 2px solid var(--nuit-3); }
+.logo { font-family: var(--display); font-size: clamp(56px, 13vw, 104px); line-height: .95; }
+.logo span { color: var(--rouge); }
+.stamp { align-self: flex-start; font-family: var(--display); font-size: 20px; color: var(--jaune); border: 4px solid var(--jaune);
+  border-radius: 6px; padding: 2px 12px; transform: rotate(-4deg); }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font-family: var(--mono); font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--nuit-2); color: var(--papier); }
+.chip.ok { background: color-mix(in srgb, var(--vert) 22%, var(--nuit)); color: var(--vert); }
+.chip.todo { background: color-mix(in srgb, var(--jaune) 18%, var(--nuit)); color: var(--jaune); }
+
+/* sommaire */
+nav.toc { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 14px; }
+nav.toc a { color: var(--papier); text-decoration: none; border-bottom: 1px solid var(--nuit-3); }
+nav.toc a:hover, nav.toc a:focus-visible { border-color: var(--jaune); outline: none; }
+
+/* challenge */
+.objections { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 14px; }
+.obj { background: var(--nuit-2); padding: 16px 18px; border-radius: 10px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.obj .sev { font-family: var(--mono); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
+.sev.crit { color: var(--rouge); } .sev.high { color: var(--jaune); } .sev.mid { color: var(--gris); }
+.obj h3 { font-size: 19px; color: var(--papier); }
+.obj p { font-size: 15px; }
+.obj .fix { font-size: 14.5px; color: var(--jaune); }
+.obj .fix::before { content: '→ '; }
+
+/* tables */
+.tbl { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+th, td { text-align: left; padding: 10px 12px; vertical-align: top; border-bottom: 1px solid var(--nuit-3); }
+th { font-family: var(--mono); font-size: 11.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--gris); font-weight: 400; }
+td:first-child { font-weight: 800; white-space: nowrap; }
+
+/* machine à états */
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-family: var(--display); font-size: 18px; }
+.flow .st { padding: 8px 14px; border-radius: 8px; background: var(--nuit-2); border: 2px solid var(--nuit-3); }
+.flow .st.hot { border-color: var(--rouge); }
+.flow .ar { color: var(--gris); font-family: var(--mono); font-size: 13px; }
+.note { font-size: 14px; color: var(--gris); }
+
+/* étapes */
+ol.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; counter-reset: s; }
+ol.steps li { counter-increment: s; display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: start; }
+ol.steps li::before { content: counter(s); font-family: var(--display); font-size: 22px; color: var(--nuit); background: var(--jaune);
+  border-radius: 6px; text-align: center; line-height: 36px; height: 36px; }
+ol.steps li > div { min-width: 0; padding-top: 6px; }
+.where { font-family: var(--mono); font-size: 12.5px; color: var(--gris); display: block; }
+
+/* code + copie */
+.copy { position: relative; background: #070e2a; border: 1px solid var(--nuit-3); border-radius: 10px; }
+.copy pre { margin: 0; padding: 16px; overflow-x: auto; font-family: var(--mono); font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+.copy button { position: absolute; top: 8px; right: 8px; background: var(--jaune); color: var(--nuit); border: 0; border-radius: 6px;
+  padding: 6px 10px; font-family: var(--body); font-weight: 800; font-size: 12.5px; cursor: pointer; }
+.copy button:focus-visible { outline: 3px solid var(--papier); outline-offset: 2px; }
+
+/* roadmap */
+.road { display: flex; flex-direction: column; gap: 0; }
+.road .it { display: grid; grid-template-columns: 110px 1fr; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--nuit-3); }
+.road .when { font-family: var(--mono); font-size: 12.5px; color: var(--gris); padding-top: 2px; }
+.road .it.done .when { color: var(--vert); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; }
+.kpi { border-left: 3px solid var(--rouge); padding: 4px 0 4px 12px; display: flex; flex-direction: column; gap: 2px; }
+.kpi b { font-family: var(--display); font-weight: 400; font-size: 20px; }
+.kpi span { font-size: 13.5px; color: var(--gris); }
+.votes { display: flex; flex-wrap: wrap; gap: 10px; }
+.vote { font-family: var(--display); font-size: 18px; padding: 8px 14px; border-radius: 8px; }
+.v1 { background: var(--jaune); color: var(--nuit); } .v2 { background: var(--nuit-3); } .v3 { background: var(--rouge); }
+@media (max-width: 520px) { .road .it { grid-template-columns: 1fr; gap: 4px; } td:first-child { white-space: normal; } }
+@media (prefers-reduced-motion: no-preference) { .stamp { animation: tamp .5s cubic-bezier(.2,1.6,.5,1) both; }
+  @keyframes tamp { from { transform: rotate(-4deg) scale(1.8); opacity: 0; } } }
+</style>
+
+<div class="wrap">
+  <header class="cover">
+    <span class="eyebrow">Dossier de séance · mis à jour le 14 octobre 2026</span>
+    <div class="logo">49<span>.MÈME</span></div>
+    <div class="stamp">ADOPTÉ SANS VOTE</div>
+    <p>Jeu de mèmes multijoueur sur mobile autour de la présidentielle 2027. Chaque joueur légende une image ou un GIF en 45 secondes, les mèmes défilent sur tous les écrans, on vote, le top 3 est adopté.</p>
+    <div class="meta">
+      <span class="chip ok">V1 backend : prête</span>
+      <span class="chip ok">Mode démo testable</span>
+      <span class="chip todo">Supabase : à brancher</span>
+      <span class="chip todo">Refonte design : à venir</span>
+      <span class="chip">GitHub → Vercel · Supabase</span>
+    </div>
+    <nav class="toc" aria-label="Sommaire">
+      <a href="#challenge">Le challenge</a><a href="#strategie">Stratégie</a><a href="#plateforme">Plateforme</a>
+      <a href="#brancher">Brancher en live</a><a href="#roadmap">Roadmap</a><a href="#passation">Passation</a>
+    </nav>
+  </header>
+
+  <section id="challenge">
+    <span class="eyebrow">Avant toute chose</span>
+    <h2>Ce qui peut tuer le projet</h2>
+    <p class="muted">Le concept est bon et le timing aussi. Voici les angles morts, du plus grave au moins grave.</p>
+    <div class="objections">
+      <article class="obj">
+        <span class="sev crit">Critique · juridique</span>
+        <h3>« Choquer » a une limite pénale</h3>
+        <p>La caricature politique est protégée en France. Les deepfakes sexuels, les montages présentés comme réels, l'injure à caractère raciste ou antisémite et le harcèlement ne le sont pas, et pèsent sur toi en tant qu'hébergeur dès qu'un joueur uploade.</p>
+        <p class="fix">Le choc doit venir de l'absurde et de l'irrévérence, pas de la haine. La V1 a déjà un bouton « Signaler » qui retire l'image tout de suite. Il faut ajouter des mentions légales et une adresse de contact.</p>
+      </article>
+      <article class="obj">
+        <span class="sev crit">Critique · croissance</span>
+        <h3>La viralité est dans le partage, pas dans le jeu</h3>
+        <p>Une partie entre potes ne sort pas du groupe. Ce qui fait venir de nouveaux joueurs, c'est le top 3 posté sur TikTok, Insta ou WhatsApp, avec le logo et le code de la room.</p>
+        <p class="fix">L'export du top 3 en image partageable doit être la toute première priorité après la V1, pas une option « plus tard ».</p>
+      </article>
+      <article class="obj">
+        <span class="sev high">Élevé · produit</span>
+        <h3>Il faut 3 amis connectés en même temps</h3>
+        <p>Tous les party games ont ce problème au démarrage. Un joueur seul qui arrive par un lien TikTok ne peut pas jouer.</p>
+        <p class="fix">Deux réponses : un mode streamer (le chat vote via un lien, c'est comme ça que Make It Meme a grandi) et un mode solo « mème du jour ».</p>
+      </article>
+      <article class="obj">
+        <span class="sev high">Élevé · image</span>
+        <h3>Taper sur un seul camp coupe l'audience en deux</h3>
+        <p>Si la banque d'images vise surtout un bord, l'app sera étiquetée militante, perdra la moitié de son public et pourra être signalée en masse.</p>
+        <p class="fix">Équilibrer les 40 à 60 images entre tous les candidats. La colonne <code>tags</code> permet de vérifier l'équilibre en une requête.</p>
+      </article>
+      <article class="obj">
+        <span class="sev high">Élevé · juridique</span>
+        <h3>Les photos de presse ont un auteur</h3>
+        <p>Le droit à l'image d'un politique est limité, mais une photo AFP ou Getty reste protégée par le droit d'auteur, parodie ou pas.</p>
+        <p class="fix">Privilégier Wikimedia Commons, les photos officielles sous licence ouverte et les captures de moments télévisés détournés. Les colonnes <code>license</code> et <code>source_url</code> servent à tracer l'origine.</p>
+      </article>
+      <article class="obj">
+        <span class="sev mid">Moyen · distribution</span>
+        <h3>« App mobile » ne veut pas dire App Store</h3>
+        <p>La validation Apple prend plusieurs jours et les règles sur le contenu politique visant des personnes réelles sont strictes. Incompatible avec un MVP en un jour.</p>
+        <p class="fix">Choix retenu : une web app installable (PWA). Un lien suffit pour rejoindre, ce qui est mieux pour la viralité. Le store pourra venir plus tard.</p>
+      </article>
+      <article class="obj">
+        <span class="sev mid">Moyen · coûts</span>
+        <h3>Le plan gratuit de Supabase plafonne vite</h3>
+        <p>200 connexions temps réel simultanées et 5 Go de bande passante par mois. Avec des GIF de 2 Mo, un pic viral les épuise en quelques heures.</p>
+        <p class="fix">Passer Supabase en Pro (25 $/mois) avant toute communication, et convertir les GIF en MP4 dans une version suivante.</p>
+      </article>
+      <article class="obj">
+        <span class="sev mid">Moyen · élection</span>
+        <h3>Un classement de votes ressemble à un sondage</h3>
+        <p>Publier « Le candidat le plus adopté sur 49.meme » à l'approche du scrutin peut être lu comme un sondage, ce qui est très encadré en période électorale.</p>
+        <p class="fix">Communiquer sur les mèmes, jamais sur des scores agrégés par candidat.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="strategie">
+    <span class="eyebrow">Bilan stratégique</span>
+    <h2>Positionnement et boucle virale</h2>
+    <p><b>Promesse :</b> « Adopté sans vote. » Le 49.3 devient le ressort comique du jeu : ton mème passe en force. Les trois boutons de vote parlent à tout le monde, quel que soit son bord :</p>
+    <div class="votes" aria-label="Boutons de vote">
+      <span class="vote v1">🔥 Macron démission · +2</span>
+      <span class="vote v2">😐 Valls revient · 0</span>
+      <span class="vote v3">🧨 49.3 · −1</span>
+    </div>
+    <h3>Cible</h3>
+    <p>Les 16-30 ans qui suivent la politique comme un feuilleton sur TikTok, X et Twitch. Ils ne votent pas forcément, mais ils commentent tout. Cible secondaire : les streamers politiques et humoristes qui jouent en live avec leur communauté.</p>
+    <h3>La boucle</h3>
+    <div class="flow" aria-label="Boucle virale">
+      <span class="st">Moment politique</span><span class="ar">→</span>
+      <span class="st">Partie entre amis</span><span class="ar">→</span>
+      <span class="st hot">Top 3 exporté</span><span class="ar">→</span>
+      <span class="st">Story ou TikTok</span><span class="ar">→</span>
+      <span class="st">Nouveaux joueurs</span>
+    </div>
+    <p>Le carburant, c'est l'actualité : annonces de candidature, débats télévisés, petites phrases. Il faut pouvoir ajouter des images du soir même dans la banque, ce que permet déjà la V1 avec un simple dépôt dans le Storage suivi de <code>select sync_library();</code>.</p>
+    <h3>Indicateurs à suivre dès le premier jour</h3>
+    <div class="kpis">
+      <div class="kpi"><b>Joueurs par room</b><span>3 minimum pour que le jeu soit drôle</span></div>
+      <div class="kpi"><b>Rounds par room</b><span>Mesure la rétention : est-ce qu'on relance ?</span></div>
+      <div class="kpi"><b>Taux de partage</b><span>Part des rooms qui exportent leur top 3</span></div>
+      <div class="kpi"><b>Score par image</b><span>Déjà stocké dans <code>templates.total_score</code></span></div>
+    </div>
+  </section>
+
+  <section id="plateforme">
+    <span class="eyebrow">Bilan technique</span>
+    <h2>La plateforme V1</h2>
+    <p>Pas de Node installé sur la machine et un délai d'un jour : l'interface est donc en HTML et JavaScript sans étape de build, servie directement par Vercel. Toute la logique de jeu vit dans Postgres, ce qui rend le serveur seul juge des règles.</p>
+    <h3>Déroulé d'une partie</h3>
+    <div class="flow" aria-label="Machine à états">
+      <span class="st">Lobby</span><span class="ar">hôte lance</span>
+      <span class="st hot">Légende 45 s</span><span class="ar">chrono ou tous validés</span>
+      <span class="st hot">Vote 9 s × N</span><span class="ar">dernier mème</span>
+      <span class="st">Résultats</span><span class="ar">round suivant ↺ ou</span>
+      <span class="st">Podium</span>
+    </div>
+    <p class="note">Si l'hôte perd le réseau, n'importe quel joueur fait avancer la partie quand le chrono expire. Le serveur vérifie l'heure et verrouille la ligne, donc la partie ne se bloque jamais.</p>
+    <h3>Choix structurants</h3>
+    <div class="tbl"><table>
+      <thead><tr><th>Brique</th><th>Choix</th><th>Pourquoi</th></tr></thead>
+      <tbody>
+        <tr><td>Front</td><td>HTML + modules JS, sans build</td><td>Modifiable par n'importe qui, déployé tel quel. Le design sera refait sans toucher au backend.</td></tr>
+        <tr><td>Règles du jeu</td><td>11 fonctions RPC Postgres</td><td>Aucune écriture directe en table : impossible de tricher ou de lire les légendes des autres avant le vote.</td></tr>
+        <tr><td>Temps réel</td><td>1 seule table écoutée (<code>rooms</code>)</td><td>Chaque action incrémente un compteur, les téléphones rechargent l'état. Simple, robuste, avec une relecture toutes les 4 s en secours.</td></tr>
+        <tr><td>Mèmes</td><td>Image + liste de textes en JSON</td><td>Le texte n'est jamais incrusté dans l'image : les GIF restent animés et un mème pèse quelques octets.</td></tr>
+        <tr><td>Banque d'images</td><td>Bucket public <code>memes/library</code> + table <code>templates</code></td><td>Servi par le CDN de Supabase. Tirage sans doublon dans une room, images des joueurs prioritaires.</td></tr>
+        <tr><td>Uploads joueurs</td><td>Réduits à 1280 px sur le téléphone</td><td>Moins de stockage et de bande passante. GIF limités à 5 Mo, rangés par room, retirés au premier signalement.</td></tr>
+        <tr><td>Comptes</td><td>Connexion anonyme Supabase</td><td>Aucune inscription : on choisit un pseudo et on joue. Chaque téléphone a quand même une identité sécurisée.</td></tr>
+      </tbody>
+    </table></div>
+    <h3>Tables</h3>
+    <div class="tbl"><table>
+      <thead><tr><th>Table</th><th>Contenu</th></tr></thead>
+      <tbody>
+        <tr><td>rooms</td><td>Code à 4 lettres, hôte, phase, round, chrono, réglages</td></tr>
+        <tr><td>players</td><td>Pseudo, avatar, score cumulé, par room</td></tr>
+        <tr><td>templates</td><td>Images et GIF : chemin, format, zones de texte par défaut, tags, licence, nombre de tirages, score total</td></tr>
+        <tr><td>memes</td><td>Une légende par joueur et par round : image tirée, textes, ordre de passage, score</td></tr>
+        <tr><td>votes</td><td>Un vote par joueur et par mème : démission, Valls ou 49.3</td></tr>
+        <tr><td>reports</td><td>Signalements pour la modération</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="brancher">
+    <span class="eyebrow">Mise en ligne · environ 15 minutes</span>
+    <h2>Brancher en live</h2>
+    <ol class="steps">
+      <li><div><b>Créer le projet Supabase</b> en région Paris (eu-west-3).<span class="where">supabase.com → New project</span></div></li>
+      <li><div><b>Exécuter le schéma :</b> coller tout le fichier <code>supabase/migrations/0001_init.sql</code> et lancer.<span class="where">SQL Editor → New query → Run</span></div></li>
+      <li><div><b>Activer la connexion anonyme.</b><span class="where">Authentication → Sign In / Providers → Allow anonymous sign-ins</span></div></li>
+      <li><div><b>Déposer la banque d'images</b> dans le dossier <code>library</code> du bucket <code>memes</code>. Nommer les fichiers <code>macron-debat-01.gif</code> : les mots deviennent des tags.<span class="where">Storage → memes → Create folder « library » → Upload</span></div></li>
+      <li><div><b>Importer les images en base</b>, puis relancer après chaque ajout :
+        <div class="copy"><button type="button" data-copy="sql">Copier</button><pre id="sql">select public.sync_library();</pre></div></div></li>
+      <li><div><b>Renseigner les clés</b> (Project URL et clé anon) dans <code>public/js/config.js</code>. Cette clé est publique par conception, la sécurité est assurée côté base.<span class="where">Project Settings → API</span></div></li>
+      <li><div><b>Pousser sur GitHub</b> dans un repo privé, depuis le dossier du projet :
+        <div class="copy"><button type="button" data-copy="git">Copier</button><pre id="git">git init && git add . && git commit -m "V1 49.meme" && git branch -M main
+git remote add origin https://github.com/VOTRE-COMPTE/49meme.git
+git push -u origin main</pre></div></div></li>
+      <li><div><b>Importer le repo dans Vercel</b>, framework « Other », puis Deploy. Chaque push sur <code>main</code> redéploie, chaque branche a son URL de test.<span class="where">vercel.com → Add New → Project</span></div></li>
+    </ol>
+    <p class="note">Le projet est dans OneDrive : la synchronisation peut abîmer le dossier <code>.git</code>. Mieux vaut cloner le repo dans un dossier hors OneDrive après le premier push. Pour tester sans backend, ouvrir l'app avec <code>?demo</code> : 3 bots jouent avec toi.</p>
+  </section>
+
+  <section id="roadmap">
+    <span class="eyebrow">Ordre de bataille</span>
+    <h2>Roadmap</h2>
+    <div class="road">
+      <div class="it done"><span class="when">Fait · 14 oct.</span><div><b>V1 backend</b> : rooms, légende avec zones déplaçables, vote synchronisé, top 3, podium, upload d'images perso, signalement, mode démo.</div></div>
+      <div class="it"><span class="when">Ensuite</span><div><b>Branchement Supabase et Vercel</b>, puis premier test réel à 4 téléphones.</div></div>
+      <div class="it"><span class="when">Ensuite</span><div><b>Refonte complète du design</b> : tout le style passe par des variables CSS, le backend ne bouge pas.</div></div>
+      <div class="it"><span class="when">Priorité croissance</span><div><b>Export du top 3 en image</b> avec logo et code de room, et bouton de partage natif.</div></div>
+      <div class="it"><span class="when">Avant la com'</span><div><b>Modération</b> : filtre de mots, CAPTCHA sur la connexion, mentions légales. Supabase en plan Pro.</div></div>
+      <div class="it"><span class="when">Croissance</span><div><b>Mode streamer</b> et <b>mème du jour</b> en solo. Transfert d'hôte si l'hôte quitte.</div></div>
+    </div>
+  </section>
+
+  <section id="passation">
+    <span class="eyebrow">Quand tu atteins ta limite</span>
+    <h2>Passer la main à un autre utilisateur Claude</h2>
+    <p>Tout le contexte vit dans le repo, pas dans une conversation. Le fichier <code>CLAUDE.md</code> à la racine est lu automatiquement par Claude Code : produit, DA, règles techniques, statut et backlog. Pour passer la main :</p>
+    <ol class="steps">
+      <li><div><b>Ajouter la personne au repo GitHub</b> comme collaborateur.<span class="where">GitHub → Settings → Collaborators</span></div></li>
+      <li><div><b>Partager ce dossier de séance</b> avec le bouton de partage de l'artefact.</div></li>
+      <li><div><b>Elle clone le repo, ouvre Claude Code dedans</b> et colle ce message :
+        <div class="copy"><button type="button" data-copy="prompt">Copier</button><pre id="prompt">Je reprends le projet 49.meme. Lis CLAUDE.md et README.md, puis supabase/migrations/0001_init.sql et public/js/app.js pour comprendre l'architecture.
+Résume-moi en 5 lignes où en est le projet et quelle est la prochaine tâche du backlog.
+Règles : nouveau fichier de migration pour tout changement de schéma, garder api-mock.js aligné sur le SQL, mettre à jour la section Statut de CLAUDE.md à la fin de chaque session.</pre></div></div></li>
+      <li><div><b>En fin de session</b>, demander à Claude de mettre à jour la section Statut de <code>CLAUDE.md</code>, puis commit et push. La personne suivante repart de là.</div></li>
+    </ol>
+  </section>
+</div>
+
+<script>
+document.querySelectorAll('[data-copy]').forEach((b) => {
+  b.addEventListener('click', () => {
+    const pre = document.getElementById(b.dataset.copy);
+    const done = () => { b.textContent = 'Copié'; setTimeout(() => (b.textContent = 'Copier'), 1600); };
+    const select = () => { const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = 'Sélectionné, fais Cmd+C'; };
+    try { navigator.clipboard.writeText(pre.textContent).then(done, select); } catch { select(); }
+  });
+});
+</script>
