@@ -29,6 +29,7 @@ export const api = {
   topMemes: (limit = 20, offset = 0) => rpc('top_memes_list', { p_limit: limit, p_offset: offset }),
   reportTop: (id) => rpc('report_top', { p_id: id }),
   librarySample: (n = 14) => rpc('library_sample', { p_n: n }),
+  quickJoin: (name) => rpc('quick_join', { p_name: name }),
   createRoom: (name, avatar) => rpc('create_room', { p_name: name, p_avatar: avatar }),
   joinRoom: (code, name, avatar) => rpc('join_room', { p_code: code, p_name: name, p_avatar: avatar }),
   state: (room) => rpc('room_state', { p_room: room }),

@@ -76,7 +76,7 @@ async function boot() {
 
 async function enterRoom(room) {
   session.room = room; save();
-  if (params.has('r')) { params.delete('r'); history.replaceState(null, '', location.pathname + (params.size ? '?' + params : '')); }
+  if (params.has('r') || params.has('go')) { params.delete('r'); params.delete('go'); history.replaceState(null, '', location.pathname + (params.size ? '?' + params : '')); }
   unsub?.();
   let t;
   unsub = api.subscribe(room, () => { clearTimeout(t); t = setTimeout(refresh, 60); });
@@ -109,7 +109,7 @@ setInterval(paintTimer, 200);
 function paintTimer() {
   if (!S || !S.room.phase_ends_at) return;
   const r = S.room, left = Date.parse(r.phase_ends_at) - serverNow();
-  const total = (r[`${r.phase === 'caption' ? 'caption' : r.phase}_seconds`] || 10) * 1000;
+  const total = (r.phase === 'lobby' ? 30 : r[`${r.phase}_seconds`] || 10) * 1000;
   const secs = Math.max(0, Math.ceil(left / 1000));
   const txt = `${two(Math.floor(secs / 60))}:${two(secs % 60)}`;
   document.querySelectorAll('[data-live=timer]').forEach((el) => { if (el.textContent !== txt) el.textContent = txt; });
@@ -134,7 +134,7 @@ function paintTimer() {
 function render() {
   const r = S.room;
   const key = [r.phase, r.round, r.vote_index, S.my_meme?.template?.id, S.my_meme?.submitted, editing, S.my_vote,
-               S.players.length, S.pending_uploads, r.max_rounds, r.caption_seconds, isHost()].join('|');
+               S.players.length, S.pending_uploads, r.max_rounds, r.caption_seconds, isHost(), !!r.phase_ends_at].join('|');
   if (key !== viewKey) {
     viewKey = key;
     if (r.phase !== 'caption') { editor = null; editing = false; }
@@ -205,6 +205,7 @@ function renderDesktopGate() {
 // ---------- accueil : polaroïds éparpillés ----------
 async function renderHome() {
   if (params.get('r')) return renderPlay('join');   // lien d'invitation → directement « rejoindre »
+  if (params.has('go')) return renderPlay('quick');  // lien du QR code → directement « jouer direct »
   $app.innerHTML = `<div class="home">
     <div class="pile" aria-hidden="true"></div>
     <div class="home-ui">
@@ -254,10 +255,11 @@ async function renderPlay(sheet = null) {
     <h1 class="pp-title">BUILD A MEME.<br><span>DROP A BANGER.</span></h1>
     <p class="pp-sub">Tes potes. Tes légendes. Zéro dignité.</p>
     <div class="pp-cta">
-      <button class="btn-yellow" data-action="ask-create">CRÉER UNE PARTIE <i>→</i></button>
+      <button class="btn-yellow" data-action="ask-quick">⚡ JOUER DIRECT <i>→</i></button>
+      <button class="btn-white" data-action="ask-create">🔒 JOUER EN PRIVÉ <i>→</i></button>
       <button class="btn-white" data-action="ask-join">REJOINDRE UN LOBBY <i>→</i></button>
     </div>
-    <p class="pp-multi"><b>👥</b> 4 JOUEURS · 1 CODE · 0 DÉBAT</p>
+    <p class="pp-multi"><b>⚡</b> DIRECT : ÉQUIPE DE 4 AUTO · <b>🔒</b> PRIVÉ : TU PARTAGES TON CODE</p>
     <div class="pp-show">${BURST}<div class="pp-cards"></div></div>
     <div class="sheet entry-sheet" hidden>
       <div class="sheet-card">
@@ -268,6 +270,7 @@ async function renderPlay(sheet = null) {
         <label class="field join-only"><span>Code du lobby</span>
           <input id="code" maxlength="4" placeholder="ABCD" value="${esc(code)}" autocapitalize="characters" autocomplete="off"></label>
         <button class="btn-yellow wide create-only" data-action="create">C'EST PARTI <i>→</i></button>
+        <button class="btn-yellow wide quick-only" data-action="quick">TROUVER UNE ÉQUIPE <i>→</i></button>
         <button class="btn-yellow wide join-only" data-action="join">REJOINDRE <i>→</i></button>
         ${api.mode === 'mock' ? '<p class="badge">MODE LOCAL · 3 bots · rien n\'est envoyé</p>' : ''}
       </div>
@@ -343,14 +346,14 @@ function askQuit() {
 function openEntry(mode) {
   const sh = $app.querySelector('.entry-sheet');
   sh.dataset.mode = mode;
-  sh.querySelector('.sheet-title').textContent = mode === 'join' ? 'Rejoins un lobby' : 'Crée ta partie';
+  sh.querySelector('.sheet-title').textContent = { join: 'Rejoins un lobby', create: 'Jouer en privé', quick: 'Jouer direct' }[mode];
   sh.hidden = false;
 }
 
 // ---------- page « How it works » ----------
 function renderHow() {
   const steps = [
-    ['01', 'Crée une partie', 'Tu reçois un code de 4 lettres. Envoie-le à 3 potes : un rond par coin de l\'écran.', null],
+    ['01', 'Direct ou en privé', 'Jouer direct : tu es placé dans une équipe de 4 et la partie démarre toute seule. Jouer en privé : tu reçois un code de 4 lettres à envoyer à 3 potes.', null],
     ['02', 'Une image. Ta meilleure légende.', 'Chacun reçoit une image ou un GIF de la campagne. Écris la légende la plus drôle avant la fin du chrono. Pas inspiré ? Change d\'image, 5 fois max.', 'img/how-round.jpg'],
     ['03', 'Le niveau du lobby', 'Tous les mèmes défilent en même temps sur chaque écran, 10 secondes chacun. Puis tout le monde vote pour son préféré. Pas pour le sien.', 'img/how-lobby.jpg'],
     ['04', 'Adopté sans vote', 'Le lauréat gagne la manche et des points de profil. Partage-le sur Insta, WhatsApp ou X et fais monter ton grade, de militant·e à président·e.', 'img/how-adopte.jpg'],
@@ -389,6 +392,7 @@ function renderProfile(p) {
 
 // ---------- lobby ----------
 function renderLobby() {
+  if (S.room.is_public) return renderQuickLobby();
   const link = `${location.origin}${location.pathname}?r=${S.room.code}`;
   stage(
     `<button class="code-big" data-action="share" data-link="${esc(link)}"><small>CODE DE LA SÉANCE</small><b>${S.room.code}</b><small>tape pour partager</small></button>`,
@@ -406,6 +410,19 @@ function renderLobby() {
       : `<p class="wait">L'hôte prépare le 49.3…</p>`)
       + `<button class="link" data-action="leave-now">← Quitter la séance</button>`,
   );
+}
+
+// Équipe « jouer direct » : on attend des joueurs, la partie part toute seule
+function renderQuickLobby() {
+  const n = S.players.length, ticking = !!S.room.phase_ends_at;
+  stage(ticking ? chrono('ÉQUIPE <b>PRÊTE</b>', 'DÉPART DANS') : `<div class="roundbar"><div class="rb-title">RECHERCHE <b>D'ÉQUIPE</b></div></div>`,
+    `<div class="panel center">
+      <h3>${n}/4 joueurs</h3>
+      <p class="muted">${n >= 4 ? 'Équipe complète, c\'est parti !' : n >= 2 ? 'La partie démarre à 4 joueurs, ou à la fin du compte à rebours.' : 'On te trouve des adversaires… La partie démarre dès qu\'un 2e joueur arrive (30 s d\'attente max).'}</p>
+      <p class="muted small">3 manches · 40 s pour légender</p>
+    </div>`,
+    (isHost() && n >= 2 ? `<button class="primary" data-action="next">LANCER MAINTENANT</button>` : `<p class="wait">Matchmaking en cours…</p>`)
+      + `<button class="link" data-action="leave-now">← Quitter</button>`);
 }
 
 function uploadBlock() {
@@ -585,6 +602,12 @@ $app.addEventListener('click', (e) => {
     case 'ask-create-from-how': renderPlay('create'); break;
     case 'profile': $app.querySelector('.profile-sheet').hidden = false; break;
     case 'share-net': shareTo(b.dataset.net, shareFile, toast); break;
+    case 'quick': return act(async () => {
+      const n = getName(); if (!n) return;
+      const res = await api.quickJoin(n);
+      session.code = res.code; await enterRoom(res.room_id);
+    });
+    case 'ask-quick': openEntry('quick'); break;
     case 'create': return act(async () => {
       const n = getName(); if (!n) return;
       const res = await api.createRoom(n);

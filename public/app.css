@@ -329,7 +329,7 @@ body.kb .rb-title { font-size: 20px; }
 .pp-card .meme img, .pp-card .meme video { height: 100%; object-fit: cover; }
 .pp-card.c0 { left: 3%; top: 42px; transform: rotate(-5deg); }
 .pp-card.c1 { right: 3%; top: 110px; transform: rotate(5deg); z-index: 2; }
-.entry-sheet[data-mode="create"] .join-only, .entry-sheet[data-mode="join"] .create-only { display: none; }
+.entry-sheet:not([data-mode="join"]) .join-only, .entry-sheet:not([data-mode="create"]) .create-only, .entry-sheet:not([data-mode="quick"]) .quick-only { display: none; }
 .sheet-title { font-family: var(--anton); font-size: 28px; font-weight: 400; }
 .how-step { background: #fff; border: 3px solid var(--noir); border-radius: 20px; box-shadow: 0 5px 0 var(--noir); padding: 14px; display: flex; flex-direction: column; gap: 8px; }
 .how-head { display: flex; align-items: center; gap: 10px; }

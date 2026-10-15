@@ -144,6 +144,12 @@ export const api = {
     BOTS.forEach((b, i) => later(900 * (i + 1), () => { players.push({ user_id: 'bot' + i, name: b, score: 0, bot: true }); bump(); }));
     return { room_id: room.id, code: room.code };
   },
+  async quickJoin(name) {
+    const res = await api.createRoom(name);
+    room.is_public = true; room.max_rounds = 3; room.caption_seconds = 40;
+    later(3000, () => { room.phase_ends_at = now() + 3000; bump(); });   // les 3 bots arrivent → départ 3 s après
+    return res;
+  },
   async joinRoom() { throw new Error('Mode démo : crée une séance (le multijoueur réel passe par Supabase).'); },
 
   async state() {
@@ -199,6 +205,7 @@ export const api = {
     castVote(ME, meme);
   },
   async tick(_, phase, idx) {
+    if (room.phase === 'lobby' && room.is_public && room.phase_ends_at && now() >= room.phase_ends_at) { startRound(); bump(); return; }
     if (room.phase === phase && room.vote_index === idx && room.phase_ends_at && now() >= room.phase_ends_at) advance();
   },
   async report() {},

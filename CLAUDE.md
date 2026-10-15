@@ -38,6 +38,8 @@ Formats : image, GIF, vidéo mp4/webm/mov (lue comme un GIF, muette en boucle).
 
 - 2026-10-15 (V5) : images ajoutées par glisser-déposer dans Storage `memes/library/` (trigger `memes_library_sync` → templates), tirage « sac mélangé » (moins montrées d'abord), page TOP MÈMES (table `top_memes`, mèmes unanimes ≥ 2 votes, signalement = masqué), menu PLAY / RÈGLES / TOP MÈMES, bouton Quitter + confirmation Oui/Non. Migration 0005.
 
+- 2026-10-15 (V6) : « ⚡ JOUER DIRECT » = matchmaking (`quick_join`, rooms.is_public, équipes de 4 compactes via verrou global, départ auto à 4 joueurs ou 30 s après le 2e ; 3 manches, 40 s). « 🔒 JOUER EN PRIVÉ » = salon avec code (inchangé). Lien `?go` = ouvre directement Jouer direct (utilisé par le QR). Migration 0006.
+
 ## Backlog priorisé
 1. Export du top 3 en image (canvas, watermark « 49.meme » + code room) + bouton partage natif.
 2. Transfert d'hôte si l'hôte quitte ; expulsion de joueur.
